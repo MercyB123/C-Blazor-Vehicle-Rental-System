@@ -1,0 +1,338 @@
+﻿@page "/"
+@using CarRental.Business.Classes
+@using CarRental.Common.Interfaces
+@using CarRental.Common.Enums
+@using CarRental.Common.Classes
+@using CarRental.Data.Classes
+
+
+<h3>Car Rental</h3>
+<br>
+
+<h5>Vehicles</h5>
+@if (error != string.Empty)
+{
+    <div class="row">
+        <div class="col-3 alert-danger" role="alert">
+            <strong>Error:</strong> @error
+        </div>
+    </div>
+}
+    <table class="table table-sm table table-bordered" style="outline-style: solid; outline-width: 1px">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">RegNo</th>
+                <th scope="col">Make</th>
+                <th scope="col">Odometer</th>
+                <th class="col-xs-1">Cost Km</th>
+                <th scope="col">Vehicle Type</th>
+                <th scope="col">$ Day</th>
+                <th scope="col">Action</th>
+                <th scope="col">Status</th>
+            </tr>
+        </thead>
+        <tr>
+            <th scope="col">
+                <input @bind="@registrationNumber" class="form-control" id="inputProductName" placeholder="RegNo" />
+            </th>
+            <th scope="col">
+                <input @bind="@make" class="form-control" id="inputProductName" placeholder="Make" />
+            </th>
+            <th scope="col">
+                <input @bind="@odometer" class="form-control" id="inputProductName" placeholder="Odometer" />
+            </th>
+            <th scope="col">
+                <input @bind="@costKm" class="form-control" id="inputProductName" placeholder="Cost Km" />
+            </th>
+            <th scope="col">
+                <div class="form-group">
+                    <select class="form-control" @bind="@vehicleType">
+                        @foreach (var vehicle in bp.VehicleTypeNames)
+                        {
+                            <option value=@vehicleType>@vehicle</option>
+                        }
+                    </select>
+                </div>
+            </th>
+            <th scope="col"></th>
+            <th scope="col">
+                <button class="btn btn-success btn-padding" style="margin-left: 25px" @onclick="AddVehicle">Add</button>
+            </th>
+        </tr>
+
+        <tbody>
+
+            @foreach (var vehicle in vehicles)
+            {
+          
+                <tr>
+                    <th scope="row">@vehicle.RegistrationNumber</th>
+                    <td>@vehicle.Make</td>
+                    <td>@vehicle.Odometer</td>
+                    <td>@vehicle.CostKm</td>
+                    <td>@vehicle.Type</td>
+                    <td>@vehicle.CostDay</td>
+                    @if (vehicle.Status.Equals(VehicleStatuses.Available))
+                    {
+                        <td>
+                            <div class="form-group row">
+                                <select class="form-control col-sm-6" style="margin-left: 10px" @bind="@selectedCustomerId">
+                                    <option value="-1" disabled selected>Select Customer</option>
+                                    @foreach (var p in customers)
+                                    {
+                                        <option value="@p.Id">@p.FullName</option>
+                                    }
+                                </select>
+                                <button class="btn btn-outline-success btn-padding" style="margin-left: 3px" @onclick="@(() => RentVehicle(vehicle.Id))">Rent</button>
+                            </div>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <div class="form-group row">
+                                <input @bind="@distance" class="form-control col-sm-6" style="margin-left: 10px" id="inputMileage" placeholder="Distance" />
+                                <button class="btn btn-outline-primary btn-padding" style="margin-left: 3px" @onclick="@(() => ReturnVehicle(vehicle.Id))">Return</button>
+                            </div>
+                        </td>
+                    }
+                    @if (vehicle.Status.Equals(VehicleStatuses.Available))
+                    {
+                        <td>
+                            <span class="badge badge-primary badge-pill">@vehicle.Status</span>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <span class="badge badge-danger badge-pill">@vehicle.Status</span>
+                        </td>
+                    }
+                </tr>
+
+            }
+        </tbody>
+    </table>
+@*end vehicle table*@
+<br />
+<br />
+
+
+@*start booking table*@
+<h5>Bookings</h5>
+
+<table class="table table-sm table table-bordered">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">RegNo</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Km Rented</th>
+            <th scope="col">Km Returned</th>
+            <th scope="col">Rented</th>
+            <th scope="col">Returned</th>
+            <th scope="col">Cost</th>
+            <th scope="col">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var booking in bookings)
+        {
+            <tr>
+                <th scope="row">@booking.RegistrationNumber</th>
+                <td>@booking.Person.FullName</td>
+                <td>@booking.OdometerRented</td>
+                <td>@booking.OdometerReturned</td>
+                <td>@booking.Rented.ToString("dd/MM/yyyy")</td>
+                @if (booking.Returned != DateTime.MinValue)
+                {
+                    <td>@booking.Returned.ToString("dd/MM/yyyy")</td>
+                }
+                else
+                {
+                    <td> </td>
+                }
+                <td>@booking.Cost</td>
+
+                @if (booking.Returned == DateTime.MinValue)
+                {
+                    <td>
+                        <span class="badge badge-danger badge-pill">Open</span>
+                    </td>
+                }
+                else 
+                {
+                    <td>
+                        <span class="badge badge-success badge-pill">Closed</span>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+@*end booking table*@
+<br />
+<br />
+
+
+@*start customer table*@
+<h5>Customers</h5>
+
+@if (error != string.Empty)
+{
+    <div class="row">
+        <div class="col-3 alert-danger" role="alert">
+            <strong>Error</strong> @error
+        </div>
+    </div>
+}
+
+<table class="table table-sm table table-bordered" style="outline-style: solid; outline-width: 1px">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">SSN</th>
+            <th scope="col">Last Name</th>
+            <th scope="col">First Name</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    @if (customers != null)
+    {
+        <tr>
+            <th scope="col">
+                <input @bind="@sSecurityNum" class="form-control" id="inputProductName" placeholder="SSN" />
+            </th>
+            <th scope="col">
+                <input @bind="@fName" class="form-control" id="inputProductName" placeholder="Firstname" />
+            </th>
+            <th scope="col">
+                <input @bind="@lName" class="form-control" id="inputProductName" placeholder="Lastname" />
+            </th>
+
+            <th scope="col">
+                <button class="btn btn-outline-success btn-padding" @onclick="AddCustomer">Add</button>
+            </th>
+        </tr>
+    }
+    <tbody>
+        @foreach (var customer in customers)
+        {
+            <tr>
+                <th scope="row">@customer.SocialSecurityNumber</th>
+                <td>@customer.LastName</td>
+                <td>@customer.FirstName</td>
+
+            </tr>
+
+        }
+    </tbody>
+</table>
+
+@*end customer table*@
+@*end table*@
+
+
+
+@code {
+
+    BookingProcessor bp = new BookingProcessor();
+    List<IBooking> bookings = new List<IBooking>();
+    List<Customer> customers = new List<Customer>();
+    string error = string.Empty;
+    IEnumerable<IVehicle> vehicles;
+    int selectedCustomerId = default;
+    string distance = string.Empty;
+    string fName = string.Empty;
+    string lName = string.Empty;
+    string sSecurityNum = string.Empty;
+    string make = string.Empty;
+    string registrationNumber = string.Empty;
+    string odometer = string.Empty;
+    string costKm = string.Empty;
+    string vehicleType = VehicleTypes.Combi.ToString();
+    //string VehicleTypeNames = default;
+
+
+    protected override void OnInitialized()
+    {
+        vehicles = bp.GetVehicles();
+
+        customers = bp.GetCustomers().ToList();
+
+        bookings = bp.GetBookings().ToList();
+
+
+
+    }
+
+
+
+
+    void AddVehicle()
+    {
+        try
+        {
+
+            error = string.Empty;
+
+            bp.AddVehicle(make, registrationNumber, double.Parse(odometer), double.Parse(costKm), VehicleStatuses.Available, Enum.Parse<VehicleTypes>(vehicleType));
+            vehicles = bp.GetVehicles().ToList();
+            make = string.Empty;
+            registrationNumber = string.Empty;
+            odometer = string.Empty;
+            costKm = costKm = string.Empty;
+
+        }
+
+        catch (Exception ex)
+        {
+
+            error = ex.Message;
+        }
+    }
+
+
+    void AddCustomer()
+    {
+        try
+        {
+
+            error = string.Empty;
+
+            bp.AddCustomer(sSecurityNum, fName, lName);
+            customers = bp.GetCustomers().ToList();
+            sSecurityNum = string.Empty;
+            fName = string.Empty;
+            lName = string.Empty;
+        }
+
+        catch (Exception ex)
+        {
+
+            error = ex.Message;
+        }
+    }
+
+
+
+    void RentVehicle(int vehicleId)
+    {
+        if (selectedCustomerId == -1)
+        {
+            return;
+        }
+        bp.RentVehicle(vehicleId, selectedCustomerId);
+        bookings = bp.GetBookings().ToList();
+    }
+
+
+
+    void ReturnVehicle(int vehicleId)
+    {
+        if (selectedCustomerId == -1)
+        {
+            return;
+        }
+        bp.ReturnVehicle(vehicleId, double.Parse(distance));
+        bookings = bp.GetBookings().ToList();
+    }
+}
